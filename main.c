@@ -5,8 +5,9 @@
 int main (int argc, char *argv[])
 {
 	int rank, np;
-	unsigned int alljobsnum;
+	unsigned int alljobsnum, actjobsnum;
 	job_t *alljobs;
+	unsigned int *activejobs;
 	int errnum;
 
 	errnum = MPI_Init(&argc, &argv);
@@ -21,6 +22,7 @@ int main (int argc, char *argv[])
 
 	assist_init();
 	alljobs = form_jobs(np, &alljobsnum);
+	activejobs = distr_jobs(rank, np, alljobsnum, &actjobsnum);
 
 	errnum =  MPI_Finalize();
 	if (errnum != MPI_SUCCESS)
