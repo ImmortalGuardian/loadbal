@@ -5,9 +5,9 @@
 int main (int argc, char *argv[])
 {
 	int rank, np;
-	unsigned int alljobsnum, actjobsnum;
+	uint alljobsnum, actjobsnum;
 	job_t *alljobs;
-	unsigned int *activejobs;
+	uint *activejobs;
 	int errnum;
 
 	errnum = MPI_Init(&argc, &argv);

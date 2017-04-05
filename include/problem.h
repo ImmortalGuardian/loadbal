@@ -29,8 +29,8 @@ double Ytop;
 double Xlen;
 double Ylen;
 
-unsigned int xgridsize;
-unsigned int ygridsize;
+uint xgridsize;
+uint ygridsize;
 
 /*
  * Lottka--Volterra model parameters
@@ -65,13 +65,13 @@ typedef struct {
  * log2base - calculates number of bits up to the most significant non-zero bit
  * (from right to left)
  */
-static inline unsigned int log2base(unsigned int n)
+static inline uint log2base(uint n)
 {
 	if (!n)
 		PRERROR("log2base: really want calculate log(0)? Think twice!",
 			ERANGE);
-	unsigned int base = 1;
-	unsigned int index = 0;
+	uint base = 1;
+	uint index = 0;
 
 	do {
 		base <<= 1;
@@ -82,6 +82,6 @@ static inline unsigned int log2base(unsigned int n)
 }
 
 void assist_init(void);
-job_t *form_jobs(unsigned int np, unsigned int *jobsnum);
+job_t *form_jobs(uint np, uint *jobsnum);
 
 #endif // PROBLEM_H

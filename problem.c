@@ -11,8 +11,8 @@ extern double Ytop;
 extern double Xlen;
 extern double Ylen;
 
-extern unsigned int xgridsize;
-extern unsigned int ygridsize;
+extern uint xgridsize;
+extern uint ygridsize;
 
 extern double alpha;
 extern double beta;
@@ -44,23 +44,23 @@ void assist_init(void)
 	Xlen = Xryt - Xlft;
 	Ylen = Ytop - Ylow;
 
-	xgridsize = (unsigned int)(Xlen / h) + 1;
-	ygridsize = (unsigned int)(Ylen / h) + 1;
+	xgridsize = (uint)(Xlen / h) + 1;
+	ygridsize = (uint)(Ylen / h) + 1;
 }
 
-job_t *form_jobs(unsigned int np, unsigned int *jobsnum)
+job_t *form_jobs(uint np, uint *jobsnum)
 {
-	unsigned int horjobsnum = min(np, scale(np));
-	unsigned int vertjobsnum = max(np, scale(np));
-	unsigned int xgridperjob = xgridsize / horjobsnum;
-	unsigned int ygridperjob = ygridsize / vertjobsnum;
-	unsigned int xgridrem = xgridsize % horjobsnum;
-	unsigned int ygridrem = ygridsize % vertjobsnum;
-	unsigned int i, j;
+	uint horjobsnum = min(np, scale(np));
+	uint vertjobsnum = max(np, scale(np));
+	uint xgridperjob = xgridsize / horjobsnum;
+	uint ygridperjob = ygridsize / vertjobsnum;
+	uint xgridrem = xgridsize % horjobsnum;
+	uint ygridrem = ygridsize % vertjobsnum;
+	uint i, j;
 
 	*jobsnum = horjobsnum * vertjobsnum;
 
-	unsigned int ind;
+	uint ind;
 	job_t *jobs = calloc(*jobsnum, sizeof(job_t));
 	if (!jobs)
 		PRERROR("form_jobs: cannot allocate memory: ", ENOMEM);

@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef unsigned int	uint;
+typedef unsigned long	ulong;
+
 #define PRERROR(s, err)                                                 \
 	do {                                                            \
 		fprintf(stderr, "%s%s\n", s, strerror(err));		\
