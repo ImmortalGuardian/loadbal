@@ -3,12 +3,13 @@ TARGET = loadbal
 CC = mpicc
 CFLAGS = -Wall -O2
 CFLAGS += -I ./include
+LDFLAGS = -lm
 
 SRCS = $(wildcard *.c)
 #INCLUDE = $(wildcard include/*.h)
 
 all : $(SRCS) .depend
-	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET)
+	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET) $(LDFLAGS)
 
 .depend :
 	$(CC) $(CFLAGS) -M $(SRCS) > .depend

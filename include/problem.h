@@ -88,4 +88,7 @@ static inline uint log2base(uint n)
 void assist_init(void);
 job_t *form_jobs(uint np, uint *jobsnum);
 
+double M0(double x, double y);	/* Initial	*/
+double N0(double x, double y);	/* conditions	*/
+
 #endif // PROBLEM_H

@@ -2,6 +2,7 @@
 #include <problem.h>
 #include <loadbal.h>
 #include <assert.h>
+#include <math.h>
 
 extern double Xlft;
 extern double Xryt;
@@ -23,6 +24,9 @@ extern double Dm;
 
 extern double h;
 extern double dt;
+
+const double bord_val = 15.0;
+const double amplitude = 5.0;
 
 void assist_init(void)
 {
@@ -148,5 +152,80 @@ void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum)
 						ENOMEM);
 			}
 		}
+	}
+}
+
+/* Set testing periodical initial conditions
+ */
+
+/* Here we have sin wave */
+double M0(double x, double y)
+{
+	double xperiod = (M_PI * 2) * 5;
+	double yperiod = (M_PI * 2) * 5;
+
+	return bord_val + amplitude * sin((x / Xlen) * xperiod) *
+		sin((y / Ylen) / yperiod);
+}
+
+/* And here - triangle wave */
+double N0(double x, double y)
+{
+	double xperiod = Xlen / 5;
+	double yperiod = Ylen / 5;
+	double xbord = Xlft;
+	double ybord = Ylow;
+	double xlean = amplitude / (xperiod / 4);
+	double ylean = amplitude / (yperiod / 4);
+	double xmul, ymul;
+
+	while (x > xbord + xperiod)
+		xbord += xperiod;
+	while (y > ybord + yperiod)
+		ybord += yperiod;
+	x -= xbord;
+	y -= ybord;
+
+	if ((x > xperiod / 4) && (x < 3 * xperiod / 4))
+		xmul = -xlean * x + 2 * amplitude + bord_val;
+	else if (x < xperiod / 4)
+		xmul = xlean * x;
+	else
+		xmul = xlean * x - 4 * amplitude + bord_val;
+
+	if ((y > yperiod / 4) && (y < 3 * yperiod / 4))
+		ymul = -ylean * y + 2 * amplitude + bord_val;
+	else if (y < yperiod / 4)
+		ymul = ylean * y;
+	else
+		ymul = ylean * y - 4 * amplitude + bord_val;
+
+	return xmul * ymul;
+}
+
+void set_init_cond(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	int i, j, k;
+	int num;
+	double x, y;
+
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+
+		/* Here the boundaries (from neighboring cells) are being filled
+		 * in. Even those, which are outside of the calculation area,
+		 * since they will not distract us anyhow.
+		 */
+		for (j = 0; j < alljobs[num].ynodes + 2; j++)
+			for (k = 0; k < alljobs[num].xnodes + 2; k++) {
+				x = Xlft + (alljobs[num].lft + k - 1) * h;
+				y = Ylow + (alljobs[num].low + j - 1) * h;
+
+				alljobs[num].N[old][j][k] = N0(x, y);
+				alljobs[num].M[old][j][k] = M0(x, y);
+
+				/* Just in case */
+				assert((x <= Xryt + h) && (y <= Ytop + h));
+			}
 	}
 }
