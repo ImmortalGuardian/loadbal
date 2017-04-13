@@ -23,6 +23,7 @@ int main (int argc, char *argv[])
 	assist_init();
 	alljobs = form_jobs(np, &alljobsnum);
 	activejobs = distr_jobs(rank, np, alljobsnum, &actjobsnum);
+	alloc_memory(alljobs, activejobs, actjobsnum);
 
 	errnum =  MPI_Finalize();
 	if (errnum != MPI_SUCCESS)

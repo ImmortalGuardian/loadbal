@@ -105,6 +105,9 @@ job_t *form_jobs(uint np, uint *jobsnum)
 				jobs[ind].ryt++;
 			if (i < ygridrem)
 				jobs[ind].top++;
+
+			jobs[ind].xnodes = jobs[ind].ryt - jobs[ind].lft + 1;
+			jobs[ind].ynodes = jobs[ind].top - jobs[ind].low + 1;
 		}
 	/* Just to be sure we did everything right; the user isn't supposed
 	 * to see theese asserts.
@@ -113,4 +116,37 @@ job_t *form_jobs(uint np, uint *jobsnum)
 	assert(jobs[*jobsnum - 1].top == ygridsize - 1);
 
 	return jobs;
+}
+
+
+void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	int i, j, k;
+	int num;
+
+	/* Increase grid nodes ammount by two in both directions to keep
+	 * boundary values. Allocate space for 3 time layers, as computational
+	 * method dictates it.
+	 */
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		for (j = 0; j < 3; j++) {
+			alljobs[num].N[j] = calloc(alljobs[num].ynodes +2,
+				sizeof(double*));
+			alljobs[num].M[j] = calloc(alljobs[num].ynodes +2,
+				sizeof(double*));
+			if (!(alljobs[num].N[j]) || !(alljobs[num].M[j]))
+				PRERROR("alloc_memory: cannot allocate memory: ", ENOMEM);
+
+			for (k = 0; k < alljobs[num].ynodes + 2; k++) {
+				alljobs[num].N[j][k] = calloc(alljobs[num].xnodes + 2,
+					sizeof(double));
+				alljobs[num].M[j][k] = calloc(alljobs[num].xnodes + 2,
+					sizeof(double));
+				if (!(alljobs[num].N[j][k]) || !(alljobs[num].M[j][k]))
+					PRERROR("alloc_memory: cannot allocate memory: ",
+						ENOMEM);
+			}
+		}
+	}
 }

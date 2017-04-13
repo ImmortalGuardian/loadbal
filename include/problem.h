@@ -52,8 +52,12 @@ double dt;
  * Elementary job unit.
  * It is to be distributed/transfered among processes.
  */
+enum layers {old = 0, pred, new};
 typedef struct {
-	double **data[2];
+	double **N[3];
+	double **M[3];
+	int xnodes;
+	int ynodes;
 	int num;
 	int top;
 	int low;
