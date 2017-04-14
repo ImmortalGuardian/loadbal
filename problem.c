@@ -155,6 +155,27 @@ void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum)
 	}
 }
 
+void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	int i, j, k;
+	int num;
+
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		for (j = 0; j < 3; j++) {
+			for (k = 0; k < alljobs[num].ynodes + 2; k++) {
+				free(alljobs[num].N[j][k]);
+				free(alljobs[num].M[j][k]);
+			}
+			free(alljobs[num].N[j]);
+			free(alljobs[num].M[j]);
+		}
+	}
+
+	free(activejobs);
+	free(alljobs);
+}
+
 /* Set testing periodical initial conditions
  */
 
