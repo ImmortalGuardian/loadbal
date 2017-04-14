@@ -19,3 +19,7 @@ clean :
 	rm -f .depend
 	rm -f .*.swp
 	rm -f include/.*.swp
+
+countlines:
+	@find . -name '*.c' -o -name '*.h' | xargs wc -l |\
+		gawk -e 'END {print $$1}'
