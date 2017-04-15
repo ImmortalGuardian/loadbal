@@ -250,3 +250,173 @@ void set_init_cond(job_t *alljobs, uint *activejobs, uint actjobsnum)
 			}
 	}
 }
+
+static inline bool border_on_lft(job_t *job)
+{
+	if (job->lft == 0)
+		return true;
+	else
+		return false;
+}
+
+static inline bool border_on_ryt(job_t *job)
+{
+	if (job->ryt == xgridsize - 1)
+		return true;
+	else
+		return false;
+}
+
+static inline bool border_on_low(job_t *job)
+{
+	if (job->low == 0)
+		return true;
+	else
+		return false;
+}
+
+static inline bool border_on_top(job_t *job)
+{
+	if (job->top == ygridsize - 1)
+		return true;
+	else
+		return false;
+}
+
+static inline bool is_bound_cell(job_t *job)
+{
+	return (border_on_low(job) || border_on_lft(job) || border_on_top(job) ||
+			border_on_ryt(job));
+}
+
+static void calc_predict(job_t *job)
+{
+	int j, k;
+	int lft_indnt, ryt_indnt, low_indnt, top_indnt;
+	double sigma = dt / (2 * h * h);
+	double **Nold, **Mold, **Npred, **Mpred, **Nnew, **Mnew;
+
+	lft_indnt = ryt_indnt = low_indnt = top_indnt = 0;
+
+	if (is_bound_cell(job)) {
+		if (border_on_lft(job))
+			lft_indnt = 1;
+		if (border_on_ryt(job))
+			ryt_indnt = 1;
+		if (border_on_low(job))
+			low_indnt = 1;
+		if (border_on_top(job))
+			top_indnt = 1;
+	}
+
+	Nold = job->N[old];
+	Mold = job->M[old];
+	Npred = job->N[pred];
+	Mpred = job->M[pred];
+	Nnew = job->N[new];
+	Mnew = job->M[new];
+	for (j = 1 + low_indnt; j <= job->ynodes - top_indnt; j++)
+	for (k = 1 + lft_indnt; k <= job->xnodes - ryt_indnt; k++) {
+		Npred[j][k] = Nold[j][k] + (Dn * sigma) * ((Nold[j][k+1] - 2 * Nold[j][k] +
+			Nold[j][k-1]) + (Nold[j+1][k] - 2 * Nold[j][k] + Nold[j-1][k]));
+		Mpred[j][k] = Mold[j][k] + (Dm * sigma) * ((Mold[j][k+1] - 2 * Mold[j][k] +
+			Mold[j][k-1]) + (Mold[j+1][k] - 2 * Mold[j][k] + Mold[j-1][k]));
+	}
+
+	if (is_bound_cell(job)) {
+		if (border_on_lft(job)) {
+			k = 1;
+			for (j = 1; j <= job->ynodes; j++) {
+				Npred[j][k] = Nnew[j][k] = bord_val;
+				Mpred[j][k] = Mnew[j][k] = bord_val;
+			}
+		}
+		if (border_on_ryt(job)) {
+			k = job->xnodes;
+			for (j = 1; j <= job->ynodes; j++) {
+				Npred[j][k] = Nnew[j][k] = bord_val;
+				Mpred[j][k] = Mnew[j][k] = bord_val;
+			}
+		}
+		if (border_on_low(job)) {
+			j = 1;
+			for (k = 1; k <= job->xnodes; k++) {
+				Npred[j][k] = Nnew[j][k] = bord_val;
+				Mpred[j][k] = Mnew[j][k] = bord_val;
+			}
+		}
+		if (border_on_top(job)) {
+			j = job->ynodes;
+			for (k = 1; k <= job->xnodes; k++) {
+				Npred[j][k] = Nnew[j][k] = bord_val;
+				Mpred[j][k] = Mnew[j][k] = bord_val;
+			}
+		}
+	}
+}
+
+static inline double fn(double N, double M)
+{
+	return (alpha - gama * M) * N;
+}
+
+static inline double fm(double N, double M)
+{
+	return (-beta + delta * N) * M;
+}
+
+enum {n = 0, m};
+static double (*f[2]) (double N, double M) = {fn, fm};
+
+static void runge_kutta(job_t *job, double dt)
+{
+	double k1[2], k2[2], k3[2], k4[2];
+	int j, k;
+	double **Npred, **Mpred, **Nnew, **Mnew;
+	double N, M;
+
+	Npred = job->N[pred];
+	Mpred = job->M[pred];
+	Nnew = job->N[new];
+	Mnew = job->M[new];
+
+	for (j = 1; j <= job->ynodes; j++)
+		for (k = 1; k <= job->xnodes; k++) {
+			N = Npred[j][k];
+			M = Mpred[j][k];
+
+			k1[n] = f[n](N, M);
+			k1[m] = f[m](N, M);
+
+			k2[n] = f[n](N + k1[n] * dt / 2, M + k1[m] * dt / 2);
+			k2[m] = f[m](N + k1[n] * dt / 2, M + k1[m] * dt / 2);
+
+			k3[n] = f[n](N + k2[n] * dt / 2, M + k2[m] * dt / 2);
+			k3[m] = f[m](N + k2[n] * dt / 2, M + k2[m] * dt / 2);
+
+			k4[n] = f[n](N + k3[n] * dt, M + k3[m] * dt);
+			k4[m] = f[m](N + k2[n] * dt, M + k2[m] * dt);
+
+			Nnew[j][k] = Npred[j][k] + (dt / 6) * (k1[n] + 2 * k2[n] +
+				2 * k3[n] + k4[n]);
+			Mnew[j][k] = Mpred[j][k] + (dt / 6) * (k1[m] + 2 * k2[m] +
+				2 * k3[m] + k4[m]);
+		}
+}
+
+void make_timestep(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	int i;
+	int num;
+	job_t *job;
+
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		job = &(alljobs[num]);
+		calc_predict(job);
+		runge_kutta(job, dt);
+
+		swap(job->N[new], job->N[old]);
+		swap(job->M[new], job->M[old]);
+	}
+}

@@ -27,6 +27,8 @@ int main (int argc, char *argv[])
 	alloc_memory(alljobs, activejobs, actjobsnum);
 	set_init_cond(alljobs, activejobs, actjobsnum);
 
+	make_timestep(alljobs, activejobs, actjobsnum);
+
 	free_resources(alljobs, activejobs, actjobsnum);
 	errnum =  MPI_Finalize();
 	if (errnum != MPI_SUCCESS)

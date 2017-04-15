@@ -11,6 +11,12 @@
 
 typedef unsigned int	uint;
 typedef unsigned long	ulong;
+typedef unsigned short	ushort;
+
+typedef ushort		bool;
+
+#define true		1
+#define false		0
 
 #define PRERROR(s, err)                                                 \
 	do {                                                            \
@@ -29,5 +35,8 @@ typedef unsigned long	ulong;
 	typeof(y) _min2 = (y);                  \
 	(void) (&_min1 == &_min2);              \
 	_min1 < _min2 ? _min1 : _min2; })
+
+#define swap(a, b)				\
+	do { typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
 
 #endif // LOADBAL_H
