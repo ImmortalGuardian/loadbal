@@ -6,6 +6,9 @@
 
 #define scale(num)	(16 - log2base(num) + 1)
 
+#define NOCELL	(-1)	/* Indicates that there's no cell in the neighbourhood */
+#define NOPROC	(-1)	/* Indicates that there's no proc in the neighbourhood */
+
 /*
  *        Calculation area
  *        ****************
@@ -49,6 +52,20 @@ double h;
 double dt;
 
 /*
+ * Info about neighbours of the cell
+ * @nbr_rank: corresponding process' rank
+ * @nbr_cell: cell number
+ */
+typedef struct {
+	int nbr_rank;
+	int nbr_cell;
+} border_t;
+
+typedef struct {
+	border_t top, low, lft, ryt;
+} bord_info_t;
+
+/*
  * Elementary job unit.
  * It is to be distributed/transfered among processes.
  */
@@ -56,6 +73,7 @@ enum layers {old = 0, pred, new};
 typedef struct {
 	double **N[3];
 	double **M[3];
+	bord_info_t brds;
 	int xnodes;
 	int ynodes;
 	int num;

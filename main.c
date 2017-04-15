@@ -4,7 +4,7 @@
 
 int main (int argc, char *argv[])
 {
-	int rank, np;
+	int rank, np, *jobsmap;
 	uint alljobsnum, actjobsnum;
 	job_t *alljobs;
 	uint *activejobs;
@@ -22,7 +22,9 @@ int main (int argc, char *argv[])
 
 	assist_init();
 	alljobs = form_jobs(np, &alljobsnum);
-	activejobs = distr_jobs(rank, np, alljobsnum, &actjobsnum);
+	jobsmap = calloc(alljobsnum, sizeof(int));
+	activejobs = distr_jobs(rank, np, alljobs, alljobsnum, &actjobsnum,
+			jobsmap);
 
 	alloc_memory(alljobs, activejobs, actjobsnum);
 	set_init_cond(alljobs, activejobs, actjobsnum);
@@ -30,6 +32,7 @@ int main (int argc, char *argv[])
 	make_timestep(alljobs, activejobs, actjobsnum);
 
 	free_resources(alljobs, activejobs, actjobsnum);
+	free(jobsmap);
 	errnum =  MPI_Finalize();
 	if (errnum != MPI_SUCCESS)
 		PRERROR("main: cannot finalize: ", errnum);

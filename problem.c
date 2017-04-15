@@ -112,6 +112,26 @@ job_t *form_jobs(uint np, uint *jobsnum)
 
 			jobs[ind].xnodes = jobs[ind].ryt - jobs[ind].lft + 1;
 			jobs[ind].ynodes = jobs[ind].top - jobs[ind].low + 1;
+
+			if (i == 0) 
+				jobs[ind].brds.low.nbr_cell = NOCELL;
+			else
+				jobs[ind].brds.low.nbr_cell = ind - horjobsnum;
+
+			if (i == vertjobsnum - 1)
+				jobs[ind].brds.top.nbr_cell = NOCELL;
+			else
+				jobs[ind].brds.top.nbr_cell = ind + horjobsnum;
+
+			if (j == 0)
+				jobs[ind].brds.lft.nbr_cell = NOCELL;
+			else
+				jobs[ind].brds.lft.nbr_cell = ind - 1;
+
+			if (j == horjobsnum - 1)
+				jobs[ind].brds.ryt.nbr_cell = NOCELL;
+			else
+				jobs[ind].brds.ryt.nbr_cell = ind + 1;
 		}
 	/* Just to be sure we did everything right; the user isn't supposed
 	 * to see theese asserts.
