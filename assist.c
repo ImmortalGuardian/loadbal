@@ -107,3 +107,56 @@ uint
 
 	return activejobs;
 }
+
+void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	int i, j, k;
+	int num;
+
+	/* Increase grid nodes ammount by two in both directions to keep
+	 * boundary values. Allocate space for 3 time layers, as computational
+	 * method dictates it.
+	 */
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		for (j = 0; j < 3; j++) {
+			alljobs[num].N[j] = calloc(alljobs[num].ynodes +2,
+				sizeof(double*));
+			alljobs[num].M[j] = calloc(alljobs[num].ynodes +2,
+				sizeof(double*));
+			if (!(alljobs[num].N[j]) || !(alljobs[num].M[j]))
+				PRERROR("alloc_memory: cannot allocate memory: ", ENOMEM);
+
+			for (k = 0; k < alljobs[num].ynodes + 2; k++) {
+				alljobs[num].N[j][k] = calloc(alljobs[num].xnodes + 2,
+					sizeof(double));
+				alljobs[num].M[j][k] = calloc(alljobs[num].xnodes + 2,
+					sizeof(double));
+				if (!(alljobs[num].N[j][k]) || !(alljobs[num].M[j][k]))
+					PRERROR("alloc_memory: cannot allocate memory: ",
+						ENOMEM);
+			}
+		}
+	}
+}
+
+void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	int i, j, k;
+	int num;
+
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		for (j = 0; j < 3; j++) {
+			for (k = 0; k < alljobs[num].ynodes + 2; k++) {
+				free(alljobs[num].N[j][k]);
+				free(alljobs[num].M[j][k]);
+			}
+			free(alljobs[num].N[j]);
+			free(alljobs[num].M[j]);
+		}
+	}
+
+	free(activejobs);
+	free(alljobs);
+}
