@@ -73,7 +73,12 @@ enum layers {old = 0, pred, new};
 typedef struct {
 	double **N[3];
 	double **M[3];
+	double *clms_snd[2];
+	double *clms_rcv[2];
+	double *rows_snd[2];
+	double *rows_rcv[2];
 	bord_info_t brds;
+	int rank;
 	int xnodes;
 	int ynodes;
 	int num;
@@ -108,5 +113,11 @@ job_t *form_jobs(uint np, uint *jobsnum);
 
 double M0(double x, double y);	/* Initial	*/
 double N0(double x, double y);	/* conditions	*/
+
+inline bool comm_lft_bord(job_t *job);
+inline bool comm_ryt_bord(job_t *job);
+inline bool comm_top_bord(job_t *job);
+inline bool comm_low_bord(job_t *job);
+inline bool is_sharing_bord(job_t *job);
 
 #endif // PROBLEM_H

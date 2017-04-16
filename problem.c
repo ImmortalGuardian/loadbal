@@ -217,6 +217,43 @@ void set_init_cond(job_t *alljobs, uint *activejobs, uint actjobsnum)
 	}
 }
 
+/* This set of simple functions is to determine whether the cell has shared
+ * borders.
+ */
+inline bool comm_lft_bord(job_t *job) {
+	if (job->brds.lft.nbr_rank != NOPROC && job->brds.lft.nbr_rank != job->rank)
+		return true;
+	else
+		return false;
+}
+
+inline bool comm_ryt_bord(job_t *job) {
+	if (job->brds.ryt.nbr_rank != NOPROC && job->brds.ryt.nbr_rank != job->rank)
+		return true;
+	else
+		return false;
+}
+
+inline bool comm_top_bord(job_t *job) {
+	if (job->brds.top.nbr_rank != NOPROC && job->brds.top.nbr_rank != job->rank)
+		return true;
+	else
+		return false;
+}
+
+inline bool comm_low_bord(job_t *job) {
+	if (job->brds.low.nbr_rank != NOPROC && job->brds.low.nbr_rank != job->rank)
+		return true;
+	else
+		return false;
+}
+
+inline bool is_sharing_bord(job_t *job) {
+	return comm_lft_bord(job) || comm_ryt_bord(job) ||
+		comm_top_bord(job) || comm_low_bord(job);
+}
+
+
 static inline bool border_on_lft(job_t *job)
 {
 	if (job->lft == 0)

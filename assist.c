@@ -61,6 +61,8 @@ void map_nbrs(int rank, int np, job_t *alljobs, uint alljobsnum, uint *activejob
 		num = activejobs[i];
 		job = &(alljobs[num]);
 
+		job->rank = rank;
+
 		if (job->brds.low.nbr_cell == NOCELL)
 			job->brds.low.nbr_rank = NOPROC;
 		else
@@ -108,6 +110,7 @@ uint
 	return activejobs;
 }
 
+enum {n = 0, m};
 void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum)
 {
 	int i, j, k;
@@ -126,6 +129,43 @@ void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum)
 				sizeof(double*));
 			if (!(alljobs[num].N[j]) || !(alljobs[num].M[j]))
 				PRERROR("alloc_memory: cannot allocate memory: ", ENOMEM);
+
+			if (comm_lft_bord(&(alljobs[num]))) {
+				alljobs[num].clms_snd[0] = calloc(alljobs[num].ynodes * 2,
+					sizeof(double));
+				alljobs[num].clms_rcv[0] = calloc(alljobs[num].ynodes * 2,
+					sizeof(double));
+				if (!(alljobs[num].clms_snd[0]) || !(alljobs[num].clms_rcv[0]))
+					PRERROR("alloc_memory: cannot allocate memory: ",
+						ENOMEM);
+			}
+			if (comm_ryt_bord(&(alljobs[num]))) {
+				alljobs[num].clms_snd[1] = calloc(alljobs[num].ynodes * 2,
+					sizeof(double));
+				alljobs[num].clms_rcv[1] = calloc(alljobs[num].ynodes * 2,
+					sizeof(double));
+				if (!(alljobs[num].clms_snd[1]) || !(alljobs[num].clms_rcv[1]))
+					PRERROR("alloc_memory: cannot allocate memory: ",
+						ENOMEM);
+			}
+			if (comm_low_bord(&(alljobs[num]))) {
+				alljobs[num].rows_snd[0] = calloc(alljobs[num].xnodes * 2,
+					sizeof(double));
+				alljobs[num].rows_rcv[0] = calloc(alljobs[num].xnodes * 2,
+					sizeof(double));
+				if (!(alljobs[num].rows_snd[0]) || !(alljobs[num].rows_rcv[0]))
+					PRERROR("alloc_memory: cannot allocate memory: ",
+						ENOMEM);
+			}
+			if (comm_top_bord(&(alljobs[num]))) {
+				alljobs[num].rows_snd[1] = calloc(alljobs[num].xnodes * 2,
+					sizeof(double));
+				alljobs[num].rows_rcv[1] = calloc(alljobs[num].xnodes * 2,
+					sizeof(double));
+				if (!(alljobs[num].rows_snd[1]) || !(alljobs[num].rows_rcv[1]))
+					PRERROR("alloc_memory: cannot allocate memory: ",
+						ENOMEM);
+			}
 
 			for (k = 0; k < alljobs[num].ynodes + 2; k++) {
 				alljobs[num].N[j][k] = calloc(alljobs[num].xnodes + 2,
@@ -150,6 +190,23 @@ void release_cell(job_t *job) {
 		}
 		free(job->N[j]);
 		free(job->M[j]);
+	}
+
+	if (comm_lft_bord(job)) {
+		free(job->clms_snd[0]);
+		free(job->clms_rcv[0]);
+	}
+	if (comm_ryt_bord(job)) {
+		free(job->clms_snd[1]);
+		free(job->clms_rcv[1]);
+	}
+	if (comm_low_bord(job)) {
+		free(job->rows_snd[0]);
+		free(job->rows_rcv[0]);
+	}
+	if (comm_top_bord(job)) {
+		free(job->rows_snd[1]);
+		free(job->rows_rcv[1]);
 	}
 }
 
