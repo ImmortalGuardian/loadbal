@@ -180,6 +180,39 @@ void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum)
 	}
 }
 
+/* Count number of borders (in this case, boundary segments) the process shares
+ * with other processes. It's used then while exchanging boundary values.
+ */
+uint count_nbredges(job_t *alljobs, uint *activejobs, uint actjobsnum, int rank) {
+	uint cnt = 0;
+	int i, num;
+	job_t *job;
+
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		job = &(alljobs[num]);
+
+		if (job->brds.top.nbr_rank != NOPROC)
+			if (job->brds.top.nbr_rank != rank)
+				cnt++;
+		if (job->brds.low.nbr_rank != NOPROC)
+			if (job->brds.low.nbr_rank != rank)
+				cnt++;
+		if (job->brds.lft.nbr_rank != NOPROC)
+			if (job->brds.lft.nbr_rank != rank)
+				cnt++;
+		if (job->brds.ryt.nbr_rank != NOPROC)
+			if (job->brds.ryt.nbr_rank != rank)
+				cnt++;
+	}
+
+	return cnt;
+}
+
+MPI_Request *prep_shrreqs(uint nbredgenum) {
+	return calloc(nbredgenum * 2, sizeof(MPI_Request));
+}
+
 void release_cell(job_t *job) {
 	int j, k;
 
@@ -210,7 +243,8 @@ void release_cell(job_t *job) {
 	}
 }
 
-void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum)
+void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum,
+		MPI_Request *sharereqs)
 {
 	int i, num;
 
@@ -221,4 +255,5 @@ void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum)
 
 	free(activejobs);
 	free(alljobs);
+	free(sharereqs);
 }

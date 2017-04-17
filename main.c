@@ -5,9 +5,10 @@
 int main (int argc, char *argv[])
 {
 	int rank, np, *jobsmap;
-	uint alljobsnum, actjobsnum;
+	uint alljobsnum, actjobsnum, nbredgenum;
 	job_t *alljobs;
 	uint *activejobs;
+	MPI_Request *sharereqs;
 	int errnum;
 
 	errnum = MPI_Init(&argc, &argv);
@@ -28,10 +29,12 @@ int main (int argc, char *argv[])
 
 	alloc_memory(alljobs, activejobs, actjobsnum);
 	set_init_cond(alljobs, activejobs, actjobsnum);
+	nbredgenum = count_nbredges(alljobs, activejobs, actjobsnum, rank);
+	sharereqs = prep_shrreqs(nbredgenum);
 
-	make_timestep(alljobs, activejobs, actjobsnum);
+	make_timestep(alljobs, activejobs, actjobsnum, sharereqs, nbredgenum);
 
-	free_resources(alljobs, activejobs, actjobsnum);
+	free_resources(alljobs, activejobs, actjobsnum, sharereqs);
 	free(jobsmap);
 	errnum =  MPI_Finalize();
 	if (errnum != MPI_SUCCESS)

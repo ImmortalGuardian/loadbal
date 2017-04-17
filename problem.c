@@ -3,6 +3,7 @@
 #include <loadbal.h>
 #include <assert.h>
 #include <math.h>
+#include <string.h>
 
 extern double Xlft;
 extern double Xryt;
@@ -407,8 +408,158 @@ static void runge_kutta(job_t *job, double dt)
 		}
 }
 
-void make_timestep(job_t *alljobs, uint *activejobs, uint actjobsnum)
-{
+static void copy_lft_snd(job_t *job) {
+	int i;
+
+	for (i = 0; i < job->ynodes; i++)
+		job->clms_snd[0][i] = job->N[new][i+1][1];
+	for (i = 0; i < job->ynodes; i++)
+		job->clms_snd[0][i+job->ynodes] = job->M[new][i+1][1];
+}
+
+static void copy_ryt_snd(job_t *job) {
+	int i;
+
+	for (i = 0; i < job->ynodes; i++)
+		job->clms_snd[1][i] = job->N[new][i+1][job->xnodes];
+	for (i = 0; i < job->ynodes; i++)
+		job->clms_snd[1][i+job->ynodes] = job->M[new][i+1][job->xnodes];
+}
+
+static void copy_low_snd(job_t *job) {
+	memcpy(job->rows_snd[0], job->N[new][1], sizeof(double) * job->xnodes);
+	memcpy(&(job->rows_snd[0][job->xnodes]), job->M[new][1], sizeof(double) * job->xnodes);
+}
+
+static void copy_top_snd(job_t *job) {
+	memcpy(job->rows_snd[1], job->N[new][job->ynodes], sizeof(double) * job->xnodes);
+	memcpy(&(job->rows_snd[1][job->xnodes]), job->M[new][job->ynodes],
+			sizeof(double) * job->xnodes);
+}
+
+static void copy_lft_rcv(job_t *job) {
+	int i;
+
+	for (i = 0; i < job->ynodes; i++)
+		job->N[new][i+1][0] = job->clms_rcv[0][i];
+	for (i = 0; i < job->ynodes; i++)
+		job->M[new][i+1][0] = job->clms_rcv[0][i+job->ynodes];
+}
+
+static void copy_ryt_rcv(job_t *job) {
+	int i;
+
+	for (i = 0; i < job->ynodes; i++)
+		job->N[new][i+1][job->xnodes+1] = job->clms_rcv[1][i];
+	for (i = 0; i < job->ynodes; i++)
+		job->M[new][i+1][job->xnodes+1] = job->clms_rcv[1][i+job->ynodes];
+}
+
+static void copy_low_rcv(job_t *job) {
+	memcpy(job->N[new][0], job->rows_rcv[0], sizeof(double) * job->xnodes);
+	memcpy(job->M[new][0], &(job->rows_rcv[0][job->xnodes]), sizeof(double) * job->xnodes);
+}
+
+static void copy_top_rcv(job_t *job) {
+	memcpy(job->N[new][job->ynodes+1], job->rows_rcv[1], sizeof(double) * job->xnodes);
+	memcpy(job->M[new][job->ynodes+1], &(job->rows_rcv[1][job->xnodes]),
+			sizeof(double) * job->xnodes);
+}
+
+static void begin_sharing(job_t *job, MPI_Request *sharereqs, int *ind) {
+	void *buf;
+	int cnt, proc, tag;
+	int j;
+	MPI_Request *req;
+
+	if (is_sharing_bord(job)) {
+		j = *ind;
+
+		if (comm_lft_bord(job)) {
+			copy_lft_snd(job);
+
+			buf = (void *)job->clms_snd[0];
+			cnt = job->ynodes * 2;
+			proc = job->brds.lft.nbr_rank;
+			tag = job->num;
+			req = &(sharereqs[j]);
+			MPI_Isend(buf, cnt, MPI_DOUBLE, proc, tag,
+				MPI_COMM_WORLD, req);
+
+			buf = (void *)job->clms_rcv[0];
+			tag = job->brds.lft.nbr_cell;
+			req = &(sharereqs[j+1]);
+			MPI_Irecv(buf, cnt, MPI_DOUBLE, proc, tag,
+				MPI_COMM_WORLD, req);
+
+			j += 2;
+		}
+
+		if (comm_ryt_bord(job)) {
+			copy_ryt_snd(job);
+
+			buf = (void *)job->clms_snd[1];
+			cnt = job->ynodes * 2;
+			proc = job->brds.ryt.nbr_rank;
+			tag = job->num;
+			req = &(sharereqs[j]);
+			MPI_Isend(buf, cnt, MPI_DOUBLE, proc, tag,
+				MPI_COMM_WORLD, req);
+
+			buf = (void *)job->clms_rcv[1];
+			tag = job->brds.ryt.nbr_cell;
+			req = &(sharereqs[j+1]);
+			MPI_Irecv(buf, cnt, MPI_DOUBLE, proc, tag,
+				MPI_COMM_WORLD, req);
+
+			j += 2;
+		}
+
+		if (comm_low_bord(job)) {
+			copy_low_snd(job);
+
+			buf = (void *)job->rows_snd[0];
+			cnt = job->xnodes * 2;
+			proc = job->brds.low.nbr_rank;
+			tag = job->num;
+			req = &(sharereqs[j]);
+			MPI_Isend(buf, cnt, MPI_DOUBLE, proc, tag,
+				MPI_COMM_WORLD, req);
+
+			buf = (void *)job->rows_rcv[0];
+			tag = job->brds.low.nbr_cell;
+			req = &(sharereqs[j+1]);
+			MPI_Irecv(buf, cnt, MPI_DOUBLE, proc, tag,
+				MPI_COMM_WORLD, req);
+
+			j += 2;
+		}
+
+		if (comm_top_bord(job)) {
+			copy_top_snd(job);
+
+			buf = (void *)job->rows_snd[1];
+			cnt = job->xnodes * 2;
+			proc = job->brds.top.nbr_rank;
+			tag = job->num;
+			req = &(sharereqs[j]);
+			MPI_Isend(buf, cnt, MPI_DOUBLE, proc, tag,
+				MPI_COMM_WORLD, req);
+
+			buf = (void *)job->rows_rcv[1];
+			tag = job->brds.top.nbr_cell;
+			req = &(sharereqs[j+1]);
+			MPI_Irecv(buf, cnt, MPI_DOUBLE, proc, tag,
+				MPI_COMM_WORLD, req);
+
+			j += 2;
+		}
+
+		*ind = j;
+	}
+}
+
+static void end_sharing(job_t *alljobs, uint *activejobs, uint actjobsnum) {
 	int i;
 	int num;
 	job_t *job;
@@ -416,10 +567,45 @@ void make_timestep(job_t *alljobs, uint *activejobs, uint actjobsnum)
 	for (i = 0; i < actjobsnum; i++) {
 		num = activejobs[i];
 		job = &(alljobs[num]);
-		calc_predict(job);
-		runge_kutta(job, dt);
+
+		if (is_sharing_bord(job)) {
+			if (comm_lft_bord(job))
+				copy_lft_rcv(job);
+			if (comm_ryt_bord(job))
+				copy_ryt_rcv(job);
+			if (comm_low_bord(job))
+				copy_low_rcv(job);
+			if (comm_top_bord(job))
+				copy_top_rcv(job);
+		}
 
 		swap(job->N[new], job->N[old]);
 		swap(job->M[new], job->M[old]);
 	}
+}
+
+void make_timestep(job_t *alljobs, uint *activejobs, uint actjobsnum,
+		MPI_Request *sharereqs, uint nbredgenum)
+{
+	int i, j;
+	int num;
+	uint reqnum;
+	job_t *job;
+
+	j = 0;
+	reqnum = nbredgenum * 2;
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		job = &(alljobs[num]);
+		calc_predict(job);
+		runge_kutta(job, dt);
+
+		begin_sharing(job, sharereqs, &j);
+
+		if (i > 0)
+			assert(job->rank == alljobs[activejobs[i]].rank);
+	}
+
+	MPI_Waitall(reqnum, sharereqs, MPI_STATUSES_IGNORE);
+	end_sharing(alljobs, activejobs, actjobsnum);
 }
