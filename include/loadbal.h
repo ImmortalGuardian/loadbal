@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <mpi.h>
+#include <time.h>
 
 typedef unsigned int	uint;
 typedef unsigned long	ulong;
@@ -39,5 +40,28 @@ typedef ushort		bool;
 
 #define swap(a, b)				\
 	do { typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
+
+#define NSECPERSEC	1000000000
+
+/* Here are some functions for managing timespec structures
+ */
+static inline struct timespec tssub(struct timespec lhs, struct timespec rhs)
+{
+	struct timespec res;
+
+	res.tv_sec = lhs.tv_sec - rhs.tv_sec;
+	res.tv_nsec = lhs.tv_nsec - rhs.tv_nsec;
+	if (res.tv_nsec < 0) {
+		res.tv_nsec = NSECPERSEC + res.tv_nsec;
+		res.tv_ses--;
+	}
+
+	return res;
+}
+
+static inline ulong ts_to_ns(struct timespec ts)
+{
+	return (ulong)((long)(ts.tv_sec * NSECPERSEC) + ts.tv_nsec)
+}
 
 #endif // LOADBAL_H

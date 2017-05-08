@@ -4,7 +4,7 @@
 
 int main (int argc, char *argv[])
 {
-	int rank, np, *jobsmap;
+	int rank, np, j, *jobsmap;
 	uint alljobsnum, actjobsnum, nbredgenum;
 	job_t *alljobs;
 	uint *activejobs;
@@ -32,7 +32,8 @@ int main (int argc, char *argv[])
 	nbredgenum = count_nbredges(alljobs, activejobs, actjobsnum, rank);
 	sharereqs = prep_shrreqs(nbredgenum);
 
-	make_timestep(alljobs, activejobs, actjobsnum, sharereqs, nbredgenum);
+	for (j = 1; j <= 10; j++)
+		make_timestep(alljobs, activejobs, actjobsnum, sharereqs, nbredgenum);
 
 	free_resources(alljobs, activejobs, actjobsnum, sharereqs);
 	free(jobsmap);

@@ -78,6 +78,9 @@ typedef struct {
 	double *rows_snd[2];
 	double *rows_rcv[2];
 	bord_info_t brds;
+	ulong iternum;
+	ulong ctime;
+	ulong avg_ctime;
 	int rank;
 	int xnodes;
 	int ynodes;

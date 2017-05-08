@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
 
 extern double Xlft;
 extern double Xryt;
@@ -133,6 +134,10 @@ job_t *form_jobs(uint np, uint *jobsnum)
 				jobs[ind].brds.ryt.nbr_cell = NOCELL;
 			else
 				jobs[ind].brds.ryt.nbr_cell = ind + 1;
+
+			jobs[ind].iternum = 0;
+			jobs[ind].ctime = 0.0;
+			jobs[ind].avg_ctime = 0.0;
 		}
 	/* Just to be sure we did everything right; the user isn't supposed
 	 * to see theese asserts.
@@ -589,6 +594,7 @@ void make_timestep(job_t *alljobs, uint *activejobs, uint actjobsnum,
 {
 	int i, j;
 	int num;
+	struct timespec ts1, ts2;
 	uint reqnum;
 	job_t *job;
 
@@ -597,8 +603,12 @@ void make_timestep(job_t *alljobs, uint *activejobs, uint actjobsnum,
 	for (i = 0; i < actjobsnum; i++) {
 		num = activejobs[i];
 		job = &(alljobs[num]);
+		clock_gettime(CLOCK_REALTIME, &ts1);
 		calc_predict(job);
 		runge_kutta(job, dt);
+		clock_gettime(CLOCK_REALTIME, &ts2);
+		job->ctime += ts_to_ns(tssub(ts2, ts1));
+		job->iternum++;
 
 		begin_sharing(job, sharereqs, &j);
 
