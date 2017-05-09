@@ -17,6 +17,8 @@ void map_nbrs(int rank, int np, job_t *alljobs, uint alljobsnum, uint *activejob
 uint *distr_jobs(int rank, int np, job_t *alljobs, uint alljobsnum,
 		uint *actjobsnum, int *jobsmap);
 uint count_nbredges(job_t *alljobs, uint *activejobs, uint actjobsnum, int rank);
+int *get_nbrs(int rank, int np, job_t *alljobs, uint *activejobs,
+		uint actjobsnum, uint *nbrsnum);
 MPI_Request *prep_shrreqs(uint nbredgenum);
 void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum);
 void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum,

@@ -213,6 +213,59 @@ MPI_Request *prep_shrreqs(uint nbredgenum) {
 	return calloc(nbredgenum * 2, sizeof(MPI_Request));
 }
 
+int *get_nbrs(int rank, int np, job_t *alljobs, uint *activejobs,
+		uint actjobsnum, uint *nbrsnum)
+{
+	uint cnt = 0;
+	int i, j, num, *nbrs;
+	job_t *job;
+	ushort *procmap;
+
+	procmap = calloc(np, sizeof(ushort));
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		job = &(alljobs[num]);
+		
+		if (job->brds.top.nbr_rank != NOPROC &&
+			job->brds.top.nbr_rank != rank)
+			if (procmap[job->brds.top.nbr_rank] == 0) {
+				procmap[job->brds.top.nbr_rank] = 1;
+				cnt++;
+			}
+		if (job->brds.low.nbr_rank != NOPROC &&
+			job->brds.low.nbr_rank != rank)
+			if (procmap[job->brds.low.nbr_rank] == 0) {
+				procmap[job->brds.low.nbr_rank] = 1;
+				cnt++;
+			}
+		if (job->brds.lft.nbr_rank != NOPROC &&
+			job->brds.lft.nbr_rank != rank)
+			if (procmap[job->brds.lft.nbr_rank] == 0) {
+				procmap[job->brds.lft.nbr_rank] = 1;
+				cnt++;
+			}
+		if (job->brds.ryt.nbr_rank != NOPROC &&
+			job->brds.ryt.nbr_rank != rank)
+			if (procmap[job->brds.ryt.nbr_rank] == 0) {
+				procmap[job->brds.ryt.nbr_rank] = 1;
+				cnt++;
+			}
+	}
+
+	nbrs = calloc(cnt, sizeof(int));
+	*nbrsnum = cnt;
+	cnt = 0;
+	for (j = 0; j < np; j++)
+		if (procmap[j] == 1) {
+			nbrs[cnt] = j;
+			cnt++;
+		}
+	assert(cnt == *nbrsnum);
+
+	free(procmap);
+	return nbrs;
+}
+
 void release_cell(job_t *job) {
 	int j, k;
 

@@ -4,8 +4,9 @@
 
 int main (int argc, char *argv[])
 {
-	int rank, np, j, *jobsmap;
-	uint alljobsnum, actjobsnum, nbredgenum;
+	int rank, np, *nbrs, j, *jobsmap;
+	uint alljobsnum, actjobsnum;
+	uint nbredgenum, nbrsnum;
 	job_t *alljobs;
 	uint *activejobs;
 	MPI_Request *sharereqs;
@@ -31,6 +32,7 @@ int main (int argc, char *argv[])
 	set_init_cond(alljobs, activejobs, actjobsnum);
 	nbredgenum = count_nbredges(alljobs, activejobs, actjobsnum, rank);
 	sharereqs = prep_shrreqs(nbredgenum);
+	nbrs = get_nbrs(rank, np, alljobs, activejobs, actjobsnum, &nbrsnum);
 
 	for (j = 1; j <= 10; j++)
 		make_timestep(alljobs, activejobs, actjobsnum, sharereqs, nbredgenum);
