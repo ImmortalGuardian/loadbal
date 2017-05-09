@@ -213,6 +213,11 @@ MPI_Request *prep_shrreqs(uint nbredgenum) {
 	return calloc(nbredgenum * 2, sizeof(MPI_Request));
 }
 
+MPI_Request *prep_wldreqs(uint nbrsnum)
+{
+	return calloc(nbrsnum * 2, sizeof(MPI_Request));
+}
+
 int *get_nbrs(int rank, int np, job_t *alljobs, uint *activejobs,
 		uint actjobsnum, uint *nbrsnum)
 {
@@ -266,6 +271,70 @@ int *get_nbrs(int rank, int np, job_t *alljobs, uint *activejobs,
 	return nbrs;
 }
 
+static void norm_wloads(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	job_t *job;
+	int num, i;
+
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		job = &(alljobs[num]);
+
+		job->avg_ctime = job->ctime / job->iternum;
+		job->iternum = 0;
+	}
+}
+
+static ulong sum_avg_wloads(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	job_t *job;
+	int i, num;
+	ulong res = 0;
+
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		job = &(alljobs[num]);
+		res += job->avg_ctime;
+	}
+
+	return res;
+}
+
+static ulong *share_wloads(int rank, job_t *alljobs, uint *activejobs,
+		uint actjobsnum, int *nbrs, uint nbrsnum, MPI_Request *wloadreqs)
+{
+	void *buf;
+	int cnt, proc, tag;
+	int i;
+	uint reqnum;
+	MPI_Request *req;
+	ulong total_wload, *wloads;
+
+	norm_wloads(alljobs, activejobs, actjobsnum);
+	total_wload = sum_avg_wloads(alljobs, activejobs, actjobsnum);
+	wloads = calloc(nbrsnum, sizeof(ulong));
+	reqnum = nbrsnum * 2;
+
+	for (i = 0; i < nbrsnum; i++) {
+		buf = (void *)(&(total_wload));
+		cnt = 1;
+		proc = nbrs[i];
+		tag = WLOAD_TAG;
+		req = &(wloadreqs[i*2]);
+		MPI_Isend(buf, cnt, MPI_UNSIGNED_LONG, proc, tag,
+				MPI_COMM_WORLD, req);
+
+		buf = (void *)(&(wloads[i]));
+		req = &(wloadreqs[i*2 + 1]);
+		MPI_Irecv(buf, cnt, MPI_UNSIGNED_LONG, proc, tag,
+				MPI_COMM_WORLD, req);
+	}
+
+	MPI_Waitall(reqnum, wloadreqs, MPI_STATUSES_IGNORE);
+
+	return wloads;
+}
+
 void release_cell(job_t *job) {
 	int j, k;
 
@@ -297,7 +366,7 @@ void release_cell(job_t *job) {
 }
 
 void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum,
-		MPI_Request *sharereqs)
+		MPI_Request *sharereqs, MPI_Request *wloadreqs)
 {
 	int i, num;
 
@@ -309,4 +378,5 @@ void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum,
 	free(activejobs);
 	free(alljobs);
 	free(sharereqs);
+	free(wloadreqs);
 }

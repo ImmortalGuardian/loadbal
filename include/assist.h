@@ -20,8 +20,9 @@ uint count_nbredges(job_t *alljobs, uint *activejobs, uint actjobsnum, int rank)
 int *get_nbrs(int rank, int np, job_t *alljobs, uint *activejobs,
 		uint actjobsnum, uint *nbrsnum);
 MPI_Request *prep_shrreqs(uint nbredgenum);
+MPI_Request *prep_wldreqs(uint nbrsnum);
 void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum);
 void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum,
-		MPI_Request *sharereqs);
+		MPI_Request *sharereqs, MPI_Request *wloadreqs);
 
 #endif // ASSIST_H

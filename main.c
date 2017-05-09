@@ -9,7 +9,7 @@ int main (int argc, char *argv[])
 	uint nbredgenum, nbrsnum;
 	job_t *alljobs;
 	uint *activejobs;
-	MPI_Request *sharereqs;
+	MPI_Request *sharereqs, *wloadreqs;
 	int errnum;
 
 	errnum = MPI_Init(&argc, &argv);
@@ -33,11 +33,12 @@ int main (int argc, char *argv[])
 	nbredgenum = count_nbredges(alljobs, activejobs, actjobsnum, rank);
 	sharereqs = prep_shrreqs(nbredgenum);
 	nbrs = get_nbrs(rank, np, alljobs, activejobs, actjobsnum, &nbrsnum);
+	wloadreqs = prep_wldreqs(nbrsnum);
 
 	for (j = 1; j <= 10; j++)
 		make_timestep(alljobs, activejobs, actjobsnum, sharereqs, nbredgenum);
 
-	free_resources(alljobs, activejobs, actjobsnum, sharereqs);
+	free_resources(alljobs, activejobs, actjobsnum, sharereqs, wloadreqs);
 	free(jobsmap);
 	errnum =  MPI_Finalize();
 	if (errnum != MPI_SUCCESS)

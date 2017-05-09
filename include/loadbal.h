@@ -41,6 +41,8 @@ typedef ushort		bool;
 #define swap(a, b)				\
 	do { typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
 
+#define WLOAD_TAG	0xFEED
+
 #define NSECPERSEC	1000000000
 
 /* Here are some functions for managing timespec structures
@@ -53,7 +55,7 @@ static inline struct timespec tssub(struct timespec lhs, struct timespec rhs)
 	res.tv_nsec = lhs.tv_nsec - rhs.tv_nsec;
 	if (res.tv_nsec < 0) {
 		res.tv_nsec = NSECPERSEC + res.tv_nsec;
-		res.tv_ses--;
+		res.tv_sec--;
 	}
 
 	return res;
@@ -61,7 +63,7 @@ static inline struct timespec tssub(struct timespec lhs, struct timespec rhs)
 
 static inline ulong ts_to_ns(struct timespec ts)
 {
-	return (ulong)((long)(ts.tv_sec * NSECPERSEC) + ts.tv_nsec)
+	return (ulong)((long)(ts.tv_sec * NSECPERSEC) + ts.tv_nsec);
 }
 
 #endif // LOADBAL_H
