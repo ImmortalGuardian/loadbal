@@ -25,8 +25,15 @@ int main (int argc, char *argv[])
 	assist_init();
 	alljobs = form_jobs(np, &alljobsnum);
 	jobsmap = calloc(alljobsnum, sizeof(int));
-	activejobs = distr_jobs(rank, np, alljobs, alljobsnum, &actjobsnum,
+	activejobs = distr_jobs1(rank, np, alljobs, alljobsnum, &actjobsnum,
 			jobsmap);
+	/*
+	printf("%d(%d): ", rank, actjobsnum);
+	for (j = 0; j < actjobsnum; j++)
+		printf("%d, ", activejobs[j]);
+	printf("\n");
+	fflush(stdout);
+	*/
 
 	alloc_memory(alljobs, activejobs, actjobsnum);
 	set_init_cond(alljobs, activejobs, actjobsnum);
@@ -36,10 +43,22 @@ int main (int argc, char *argv[])
 	wloadreqs = prep_wldreqs(nbrsnum);
 
 	for (j = 1; j <= 10; j++)
-		make_timestep(alljobs, activejobs, actjobsnum, sharereqs, nbredgenum);
+		make_timestep(alljobs, activejobs, actjobsnum, sharereqs,
+				nbredgenum, rank);
+	rebalance(rank, np, alljobs, alljobsnum, &activejobs, &actjobsnum, nbrs,
+			nbrsnum, jobsmap, wloadreqs);
+	renew_resources(rank, np, alljobs, activejobs, actjobsnum, &sharereqs,
+			&wloadreqs, &nbredgenum, &nbrs, &nbrsnum);
+	for (j = 1; j <= 10; j++)
+		make_timestep(alljobs, activejobs, actjobsnum, sharereqs,
+				nbredgenum, rank);
+	rebalance(rank, np, alljobs, alljobsnum, &activejobs, &actjobsnum, nbrs,
+			nbrsnum, jobsmap, wloadreqs);
+	renew_resources(rank, np, alljobs, activejobs, actjobsnum, &sharereqs,
+			&wloadreqs, &nbredgenum, &nbrs, &nbrsnum);
 
-	free_resources(alljobs, activejobs, actjobsnum, sharereqs, wloadreqs);
-	free(jobsmap);
+	free_resources(alljobs, activejobs, actjobsnum, sharereqs, wloadreqs,
+			nbrs, jobsmap, rank);
 	errnum =  MPI_Finalize();
 	if (errnum != MPI_SUCCESS)
 		PRERROR("main: cannot finalize: ", errnum);

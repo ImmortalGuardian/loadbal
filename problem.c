@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <float.h>
 
 extern double Xlft;
 extern double Xryt;
@@ -44,8 +45,8 @@ void assist_init(void)
 	Dn = 0.005;
 	Dm = 0.005;
 
-	h = 0.01;
-	dt = 0.001;
+	h = 0.001;
+	dt = 0.0005;
 
 	Xlen = Xryt - Xlft;
 	Ylen = Ytop - Ylow;
@@ -218,7 +219,8 @@ void set_init_cond(job_t *alljobs, uint *activejobs, uint actjobsnum)
 				alljobs[num].M[old][j][k] = M0(x, y);
 
 				/* Just in case */
-				assert((x <= Xryt + h) && (y <= Ytop + h));
+				assert(!((x > Xryt + h + DBL_EPSILON) ||
+						(y > Ytop + h + DBL_EPSILON)));
 			}
 	}
 }
@@ -471,7 +473,8 @@ static void copy_top_rcv(job_t *job) {
 			sizeof(double) * job->xnodes);
 }
 
-static void begin_sharing(job_t *job, MPI_Request *sharereqs, int *ind) {
+static void begin_sharing(job_t *job, MPI_Request *sharereqs, int *ind, int rank)
+{
 	void *buf;
 	int cnt, proc, tag;
 	int j;
@@ -482,17 +485,18 @@ static void begin_sharing(job_t *job, MPI_Request *sharereqs, int *ind) {
 
 		if (comm_lft_bord(job)) {
 			copy_lft_snd(job);
+				fflush(stdout);
 
 			buf = (void *)job->clms_snd[0];
 			cnt = job->ynodes * 2;
 			proc = job->brds.lft.nbr_rank;
-			tag = job->num;
+			tag = job->num * 10 + 3;
 			req = &(sharereqs[j]);
 			MPI_Isend(buf, cnt, MPI_DOUBLE, proc, tag,
 				MPI_COMM_WORLD, req);
 
 			buf = (void *)job->clms_rcv[0];
-			tag = job->brds.lft.nbr_cell;
+			tag = job->brds.lft.nbr_cell * 10 + 1;
 			req = &(sharereqs[j+1]);
 			MPI_Irecv(buf, cnt, MPI_DOUBLE, proc, tag,
 				MPI_COMM_WORLD, req);
@@ -506,13 +510,13 @@ static void begin_sharing(job_t *job, MPI_Request *sharereqs, int *ind) {
 			buf = (void *)job->clms_snd[1];
 			cnt = job->ynodes * 2;
 			proc = job->brds.ryt.nbr_rank;
-			tag = job->num;
+			tag = job->num * 10 + 1;
 			req = &(sharereqs[j]);
 			MPI_Isend(buf, cnt, MPI_DOUBLE, proc, tag,
 				MPI_COMM_WORLD, req);
 
 			buf = (void *)job->clms_rcv[1];
-			tag = job->brds.ryt.nbr_cell;
+			tag = job->brds.ryt.nbr_cell * 10 + 3;
 			req = &(sharereqs[j+1]);
 			MPI_Irecv(buf, cnt, MPI_DOUBLE, proc, tag,
 				MPI_COMM_WORLD, req);
@@ -526,13 +530,13 @@ static void begin_sharing(job_t *job, MPI_Request *sharereqs, int *ind) {
 			buf = (void *)job->rows_snd[0];
 			cnt = job->xnodes * 2;
 			proc = job->brds.low.nbr_rank;
-			tag = job->num;
+			tag = job->num * 10 + 2;
 			req = &(sharereqs[j]);
 			MPI_Isend(buf, cnt, MPI_DOUBLE, proc, tag,
 				MPI_COMM_WORLD, req);
 
 			buf = (void *)job->rows_rcv[0];
-			tag = job->brds.low.nbr_cell;
+			tag = job->brds.low.nbr_cell * 10 + 0;
 			req = &(sharereqs[j+1]);
 			MPI_Irecv(buf, cnt, MPI_DOUBLE, proc, tag,
 				MPI_COMM_WORLD, req);
@@ -546,13 +550,13 @@ static void begin_sharing(job_t *job, MPI_Request *sharereqs, int *ind) {
 			buf = (void *)job->rows_snd[1];
 			cnt = job->xnodes * 2;
 			proc = job->brds.top.nbr_rank;
-			tag = job->num;
+			tag = job->num * 10 + 0;
 			req = &(sharereqs[j]);
 			MPI_Isend(buf, cnt, MPI_DOUBLE, proc, tag,
 				MPI_COMM_WORLD, req);
 
 			buf = (void *)job->rows_rcv[1];
-			tag = job->brds.top.nbr_cell;
+			tag = job->brds.top.nbr_cell * 10 + 2;
 			req = &(sharereqs[j+1]);
 			MPI_Irecv(buf, cnt, MPI_DOUBLE, proc, tag,
 				MPI_COMM_WORLD, req);
@@ -590,7 +594,7 @@ static void end_sharing(job_t *alljobs, uint *activejobs, uint actjobsnum) {
 }
 
 void make_timestep(job_t *alljobs, uint *activejobs, uint actjobsnum,
-		MPI_Request *sharereqs, uint nbredgenum)
+		MPI_Request *sharereqs, uint nbredgenum, int rank)
 {
 	int i, j;
 	int num;
@@ -610,12 +614,20 @@ void make_timestep(job_t *alljobs, uint *activejobs, uint actjobsnum,
 		job->ctime += ts_to_ns(tssub(ts2, ts1));
 		job->iternum++;
 
-		begin_sharing(job, sharereqs, &j);
+		begin_sharing(job, sharereqs, &j, rank);
 
 		if (i > 0)
 			assert(job->rank == alljobs[activejobs[i]].rank);
 	}
 
-	MPI_Waitall(reqnum, sharereqs, MPI_STATUSES_IGNORE);
+	for (i = 0; i < reqnum; i++) {
+		/*
+		if (rank == 3) {
+			printf("I'm %d, waiting for %d out of %d\n", rank, i, reqnum);
+			fflush(stdout);
+		}*/
+		MPI_Wait(&(sharereqs[i]), MPI_STATUSES_IGNORE);
+	}
+	//MPI_Waitall(reqnum, sharereqs, MPI_STATUSES_IGNORE);
 	end_sharing(alljobs, activejobs, actjobsnum);
 }
