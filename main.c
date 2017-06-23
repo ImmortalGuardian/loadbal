@@ -37,6 +37,7 @@ int main (int argc, char *argv[])
 
 	alloc_memory(alljobs, activejobs, actjobsnum);
 	set_init_cond(alljobs, activejobs, actjobsnum);
+	draw(rank, np, alljobs, activejobs, actjobsnum);
 	nbredgenum = count_nbredges(alljobs, activejobs, actjobsnum, rank);
 	sharereqs = prep_shrreqs(nbredgenum);
 	nbrs = get_nbrs(rank, np, alljobs, activejobs, actjobsnum, &nbrsnum);

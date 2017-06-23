@@ -35,6 +35,7 @@ void renew_resources(int rank, int np, job_t *alljobs, uint *activejobs,
 void free_resources(job_t *alljobs, uint *activejobs, uint actjobsnum,
 		MPI_Request *sharereqs, MPI_Request *wloadreqs, int *nbrs,
 		int *jobsmap, int rank);
+void draw(int rank, int np, job_t *alljobs, uint *activejobs, uint actjobsnum);
 void release_cell(job_t *job, int rank);
 void send_job(job_t *alljobs, int num, int dest, double **buf, MPI_Request *req,
 		int rank);

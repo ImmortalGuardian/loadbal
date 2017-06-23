@@ -973,6 +973,39 @@ void renew_resources(int rank, int np, job_t *alljobs, uint *activejobs,
 	*wloadreqs = prep_wldreqs(*nbrsnum);
 }
 
+static void print_vals(job_t *job)
+{
+	int i, j;
+	double x, y;
+
+	for (i = 1; i <= job->ynodes; i++)
+		for (j = 1; j <= job->xnodes; j++) {
+			x = (job->lft + j-1) * h;
+			y = (job->low + i-1) * h;
+			printf("%.4f, %.4f, %.4f, %.4f\n", x, y,
+				job->N[old][i][j], job->M[old][i][j]);
+			fflush(stdout);
+	}
+}
+
+void draw(int rank, int np, job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+	int i, buf, num;
+	job_t *job;
+
+	buf = INT_MAX;
+	if (rank > 0)
+		MPI_Recv(&buf, 1, MPI_INT, rank-1, READY_TAG, MPI_COMM_WORLD,
+				MPI_STATUSES_IGNORE);
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		job = &(alljobs[num]);
+		print_vals(job);
+	}
+	if (rank < np-1)
+		MPI_Send(&buf, 1, MPI_INT, rank+1, READY_TAG, MPI_COMM_WORLD);
+}
+
 void release_cell(job_t *job, int rank)
 {
 	int j, k;

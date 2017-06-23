@@ -45,8 +45,8 @@ void assist_init(void)
 	Dn = 0.005;
 	Dm = 0.005;
 
-	h = 0.001;
-	dt = 0.0005;
+	h = 0.01;
+	dt = 0.005;
 
 	Xlen = Xryt - Xlft;
 	Ylen = Ytop - Ylow;
@@ -158,8 +158,8 @@ double M0(double x, double y)
 	double xperiod = (M_PI * 2) * 5;
 	double yperiod = (M_PI * 2) * 5;
 
-	return bord_val + amplitude * sin((x / Xlen) * xperiod) *
-		sin((y / Ylen) / yperiod);
+	return bord_val - amplitude * sin((x / Xlen) * xperiod) *
+		sin((y / Ylen) * yperiod);
 }
 
 /* And here - triangle wave */
@@ -169,8 +169,8 @@ double N0(double x, double y)
 	double yperiod = Ylen / 5;
 	double xbord = Xlft;
 	double ybord = Ylow;
-	double xlean = amplitude / (xperiod / 4);
-	double ylean = amplitude / (yperiod / 4);
+	double xlean = 1.0 / (xperiod / 4);
+	double ylean = 1.0 / (yperiod / 4);
 	double xmul, ymul;
 
 	while (x > xbord + xperiod)
@@ -180,21 +180,23 @@ double N0(double x, double y)
 	x -= xbord;
 	y -= ybord;
 
-	if ((x > xperiod / 4) && (x < 3 * xperiod / 4))
-		xmul = -xlean * x + 2 * amplitude + bord_val;
-	else if (x < xperiod / 4)
+	if ((x > (xperiod / 4)) && (x < 3 * (xperiod / 4))) {
+		xmul = -xlean * x + 2.0;
+	}
+	else if (x <= (xperiod / 4) + DBL_EPSILON)
 		xmul = xlean * x;
-	else
-		xmul = xlean * x - 4 * amplitude + bord_val;
+	else {
+		xmul = xlean * x - 4.0;
+	}
 
-	if ((y > yperiod / 4) && (y < 3 * yperiod / 4))
-		ymul = -ylean * y + 2 * amplitude + bord_val;
-	else if (y < yperiod / 4)
+	if (y > (yperiod / 4) && (y < 3 * (yperiod / 4)))
+		ymul = -ylean * y + 2.0;
+	else if (y <= (yperiod / 4) + DBL_EPSILON)
 		ymul = ylean * y;
 	else
-		ymul = ylean * y - 4 * amplitude + bord_val;
+		ymul = ylean * y - 4.0;
 
-	return xmul * ymul;
+	return xmul * ymul * amplitude + bord_val;
 }
 
 void set_init_cond(job_t *alljobs, uint *activejobs, uint actjobsnum)

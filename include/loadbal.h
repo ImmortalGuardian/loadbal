@@ -45,6 +45,7 @@ typedef ushort		bool;
 #define JOBPREP_TAG	0xDEAD
 #define JOBEXCH_TAG	0xBEEF
 #define JOBTRANS_TAG	0xBEAD
+#define READY_TAG	0xFAAC
 
 #define NSECPERSEC	1000000000
 
