@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <assist.h>
 #include <problem.h>
+#include <math.h>
+#include <float.h>
 #include <limits.h>
 
 /*int which_proc(int cellnum, int np, uint alljobsnum) {
@@ -390,8 +392,19 @@ static void norm_wloads(job_t *alljobs, uint *activejobs, uint actjobsnum)
 	for (i = 0; i < actjobsnum; i++) {
 		num = activejobs[i];
 		job = &(alljobs[num]);
-
 		job->avg_ctime = job->ctime / job->iternum;
+	}
+}
+
+void nullify_wloads(job_t *alljobs, uint *activejobs, uint actjobsnum)
+{
+
+	job_t *job;
+	int num, i;
+
+	for (i = 0; i < actjobsnum; i++) {
+		num = activejobs[i];
+		job = &(alljobs[num]);
 		job->ctime = 0;
 		job->iternum = 0;
 	}
@@ -892,6 +905,7 @@ void rebalance(int rank, int np, job_t *alljobs, uint alljobsnum, uint **activej
 	uint *jobs_srt, **jobs_to_snd, **jobs_to_rcv;
 
 	norm_wloads(alljobs, *activejobs, *actjobsnum);
+	nullify_wloads(alljobs, *activejobs, *actjobsnum);
 	total_wload = sum_avg_wloads(alljobs, *activejobs, *actjobsnum);
 	wloads = share_wloads(rank, alljobs, *activejobs, *actjobsnum,
 			nbrs, nbrsnum, wloadreqs, total_wload);
@@ -982,7 +996,8 @@ static void print_vals(job_t *job)
 		for (j = 1; j <= job->xnodes; j++) {
 			x = (job->lft + j-1) * h;
 			y = (job->low + i-1) * h;
-			printf("%.4f, %.4f, %.4f, %.4f\n", x, y,
+			if (fabs(y - 0.25) < DBL_EPSILON)
+				printf("%.4f, %.4f, %.4f\n", x,
 				job->N[old][i][j], job->M[old][i][j]);
 			fflush(stdout);
 	}
@@ -1004,6 +1019,51 @@ void draw(int rank, int np, job_t *alljobs, uint *activejobs, uint actjobsnum)
 	}
 	if (rank < np-1)
 		MPI_Send(&buf, 1, MPI_INT, rank+1, READY_TAG, MPI_COMM_WORLD);
+}
+
+static ulong max_wload(int np, ulong *wloads)
+{
+	int i;
+	ulong max;
+
+	max = 0;
+	for (i = 0; i < np; i++)
+		if (wloads[i] > max)
+			max = wloads[i];
+
+	return max;
+}
+
+static ulong min_wload(int np, ulong *wloads)
+{
+	int i;
+	ulong min;
+
+	min = ULONG_MAX;
+	for (i = 0; i < np; i++)
+		if (wloads[i] < min)
+			min = wloads[i];
+
+	return min;
+}
+
+double mes_disb(int rank, int np, job_t *alljobs, uint *activejobs,
+		uint actjobsnum)
+{
+	ulong total_wload, *wloads, max, min;
+
+	norm_wloads(alljobs, activejobs, actjobsnum);
+	total_wload = sum_avg_wloads(alljobs, activejobs, actjobsnum);
+	wloads = calloc(np, sizeof(ulong));
+	wloads[rank] = total_wload;
+	MPI_Allgather(&(wloads[rank]), 1, MPI_UNSIGNED_LONG, wloads, 1,
+			MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+
+	max = max_wload(np, wloads);
+	min = min_wload(np, wloads);
+	free(wloads);
+
+	return (double)(max - min) / (double)min;
 }
 
 void release_cell(job_t *job, int rank)

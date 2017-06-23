@@ -37,26 +37,33 @@ int main (int argc, char *argv[])
 
 	alloc_memory(alljobs, activejobs, actjobsnum);
 	set_init_cond(alljobs, activejobs, actjobsnum);
-	draw(rank, np, alljobs, activejobs, actjobsnum);
+	//draw(rank, np, alljobs, activejobs, actjobsnum);
 	nbredgenum = count_nbredges(alljobs, activejobs, actjobsnum, rank);
 	sharereqs = prep_shrreqs(nbredgenum);
 	nbrs = get_nbrs(rank, np, alljobs, activejobs, actjobsnum, &nbrsnum);
 	wloadreqs = prep_wldreqs(nbrsnum);
 
-	for (j = 1; j <= 10; j++)
+	double mes;
+	for (j = 1; j <= 30000; j++) {
 		make_timestep(alljobs, activejobs, actjobsnum, sharereqs,
 				nbredgenum, rank);
-	rebalance(rank, np, alljobs, alljobsnum, &activejobs, &actjobsnum, nbrs,
-			nbrsnum, jobsmap, wloadreqs);
-	renew_resources(rank, np, alljobs, activejobs, actjobsnum, &sharereqs,
-			&wloadreqs, &nbredgenum, &nbrs, &nbrsnum);
-	for (j = 1; j <= 10; j++)
-		make_timestep(alljobs, activejobs, actjobsnum, sharereqs,
-				nbredgenum, rank);
-	rebalance(rank, np, alljobs, alljobsnum, &activejobs, &actjobsnum, nbrs,
-			nbrsnum, jobsmap, wloadreqs);
-	renew_resources(rank, np, alljobs, activejobs, actjobsnum, &sharereqs,
-			&wloadreqs, &nbredgenum, &nbrs, &nbrsnum);
+		if ((j%50) == 0) {
+			mes = mes_disb(rank, np, alljobs, activejobs, actjobsnum);
+			if (rank == 0) {
+				printf("mes = %f\n", mes);
+				fflush(stdout);
+			}
+			if (mes > CRIT_MES) {
+				rebalance(rank, np, alljobs, alljobsnum, &activejobs,
+					&actjobsnum, nbrs, nbrsnum, jobsmap, wloadreqs);
+				renew_resources(rank, np, alljobs, activejobs, actjobsnum,
+					&sharereqs, &wloadreqs, &nbredgenum,
+					&nbrs, &nbrsnum);
+			}
+			else
+				nullify_wloads(alljobs, activejobs, actjobsnum);
+		}
+	}
 
 	free_resources(alljobs, activejobs, actjobsnum, sharereqs, wloadreqs,
 			nbrs, jobsmap, rank);

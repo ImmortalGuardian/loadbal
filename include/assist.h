@@ -5,6 +5,7 @@
 #include <loadbal.h>
 
 #define THRHOLD_PERC	20
+#define CRIT_MES	0.5
 
 extern void assist_init(void);
 extern job_t *form_jobs(uint np, uint *alljobsnum);
@@ -26,6 +27,9 @@ int *get_nbrs(int rank, int np, job_t *alljobs, uint *activejobs,
 MPI_Request *prep_shrreqs(uint nbredgenum);
 MPI_Request *prep_wldreqs(uint nbrsnum);
 void alloc_memory(job_t *alljobs, uint *activejobs, uint actjobsnum);
+double mes_disb(int rank, int np, job_t *alljobs, uint *activejobs,
+		uint actjobsnum);
+void nullify_wloads(job_t *alljobs, uint *activejobs, uint actjobsnum);
 void rebalance(int rank, int np, job_t *alljobs, uint alljobsnum, uint **activejobs,
 		uint *actjobsnum, int *nbrs, uint nbrsnum, int *jobsmap,
 		MPI_Request *wloadreqs);

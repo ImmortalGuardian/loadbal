@@ -385,18 +385,32 @@ static void runge_kutta(job_t *job, double dt)
 {
 	double k1[2], k2[2], k3[2], k4[2];
 	int j, k;
-	double **Npred, **Mpred, **Nnew, **Mnew;
+	int lft_indnt, ryt_indnt, low_indnt, top_indnt;
+	double **Nold, **Mold, **Npred, **Mpred, **Nnew, **Mnew;
 	double N, M;
 
+	Nold = job->N[old];
+	Mold = job->M[old];
 	Npred = job->N[pred];
 	Mpred = job->M[pred];
 	Nnew = job->N[new];
 	Mnew = job->M[new];
 
-	for (j = 1; j <= job->ynodes; j++)
-		for (k = 1; k <= job->xnodes; k++) {
-			N = Npred[j][k];
-			M = Mpred[j][k];
+	if (is_bound_cell(job)) {
+		if (border_on_lft(job))
+			lft_indnt = 1;
+		if (border_on_ryt(job))
+			ryt_indnt = 1;
+		if (border_on_low(job))
+			low_indnt = 1;
+		if (border_on_top(job))
+			top_indnt = 1;
+	}
+
+	for (j = 1 + low_indnt; j <= job->ynodes - top_indnt; j++)
+		for (k = 1 + lft_indnt; k <= job->xnodes - ryt_indnt; k++) {
+			N = Nold[j][k];
+			M = Mold[j][k];
 
 			k1[n] = f[n](N, M);
 			k1[m] = f[m](N, M);
@@ -408,7 +422,7 @@ static void runge_kutta(job_t *job, double dt)
 			k3[m] = f[m](N + k2[n] * dt / 2, M + k2[m] * dt / 2);
 
 			k4[n] = f[n](N + k3[n] * dt, M + k3[m] * dt);
-			k4[m] = f[m](N + k2[n] * dt, M + k2[m] * dt);
+			k4[m] = f[m](N + k3[n] * dt, M + k2[m] * dt);
 
 			Nnew[j][k] = Npred[j][k] + (dt / 6) * (k1[n] + 2 * k2[n] +
 				2 * k3[n] + k4[n]);
