@@ -121,21 +121,23 @@ uint
 *distr_jobs1(int rank, int np, job_t *alljobs, uint alljobsnum, uint *actjobsnum,
 		int *jobsmap)
 {
-	uint others, hlf, perproc, rem;
+	uint others, trt, qtr, perproc, rem;
 	uint sum, prev, *jobnums, *activejobs;
 	int i, j, k, ysize, xsize, dir;
 
 	jobnums = calloc(np, sizeof(uint));
 
-	hlf = alljobsnum / 2;
-	jobnums[0] = hlf;
-	others = alljobsnum - hlf;
-	perproc = others / (np-1);
-	rem = others - perproc*(np-1);
+	trt = alljobsnum / 3;
+	qtr = alljobsnum / 4;
+	jobnums[0] = trt;
+	jobnums[1] = qtr;
+	others = alljobsnum - trt - qtr;
+	perproc = others / (np-2);
+	rem = others - perproc*(np-2);
 
-	for (i = 1; i < np; i++)
+	for (i = 2; i < np; i++)
 		jobnums[i] = perproc;
-	for (i = 1; i < np; i++) {
+	for (i = 2; i < np; i++) {
 		if (rem == 0)
 			break;
 		jobnums[i]++;

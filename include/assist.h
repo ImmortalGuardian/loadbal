@@ -5,7 +5,7 @@
 #include <loadbal.h>
 
 #define THRHOLD_PERC	20
-#define CRIT_MES	0.5
+#define CRIT_MES	0.8
 
 extern void assist_init(void);
 extern job_t *form_jobs(uint np, uint *alljobsnum);
